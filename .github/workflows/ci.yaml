@@ -1,0 +1,39 @@
+# .github/workflows/ci.yml
+name: CI
+
+# 1️⃣  Workflow triggers
+on:
+  push:            # test job on every push
+  pull_request:    # test job on every PR
+  schedule:        # fires regardless of branch; always UTC
+    - cron: '0 0 * * *'          # 00:00 UTC  =  02:00 Cairo
+
+jobs:
+  # 2️⃣  Unit-test job (unchanged)
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: abatilo/actions-poetry@v2
+      - name: Install deps
+        run: poetry install --no-interaction --no-root
+      - name: Run tests
+        run: poetry run pytest -q
+
+  # 3️⃣  Nightly scraper job
+  nightly-scrape:
+    if: github.event_name == 'schedule'   # guard: only run on the cron trigger
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: abatilo/actions-poetry@v2
+      - name: Install deps
+        run: poetry install --no-interaction --no-root
+      - name: Run scraper dry-run
+        run: poetry run python tip_trust/scrape/fb_playwright.py --dry
